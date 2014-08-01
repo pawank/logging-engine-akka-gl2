@@ -13,3 +13,7 @@ Steps to run:
 7. compile
 8. run
 
+
+clone logging-engine-akka-gl2-dependencies and follow respective README files.
+Each program has "run.sh" which is a shell script wrapper for running the respective application.
+
