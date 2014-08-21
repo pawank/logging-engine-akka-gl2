@@ -141,7 +141,7 @@ class Graylog2LoggerActor extends Actor {
    */
   import LoggingEngine.Welcome
 
-  //val log = Logging(context.system, this)
+  val log = Logging(context.system, this)
 
   /**
    *
@@ -155,7 +155,7 @@ class Graylog2LoggerActor extends Actor {
   private lazy val gl2 = new com.acelrtech.log.backends.gl2.Graylog2Logger(appGraylog2IP,appGraylog2Post)
 
   def receive = {
-    case Welcome => self ! com.acelrtech.log.models.Info("\nLoggingActor has started...")
+    case Welcome => log.info("\nLoggingActor has started...")
     /**
      *
      * Messages to activate / deactivate graylog2 logging
@@ -217,7 +217,7 @@ class Graylog2LoggerActor extends Actor {
 }
 
 class Graylog2Logging(client:ActorSelection, config:Config, hostname:String, port:Int) extends Graylog2Logger(hostname,port) {
-
+  
 }
 
 object Graylog2Logger {
