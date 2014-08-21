@@ -1,4 +1,4 @@
-package com.acelrtech.log.backends.actor
+package com.acelrtech.log.backends.gl2
 
 import akka.actor.{Actor,ActorSelection}
 import com.acelrtech.log.models._
@@ -6,56 +6,55 @@ import com.acelrtech.utils.Utils
 import com.typesafe.config._
 import com.acelrtech.log.models.app.{AppLog, LogMessage}
 
-
 /**
-* Logger which takes target logging system `ActorRef` to communicate with
-*
-* @param client ActorRef of the target logging platform
-* @param config Configuration to enable / disable logging
-*
-*/
-class Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.Logger{
-    private[this] var active:Boolean = true
-    override def enableDisable(mode:Boolean):Boolean = {
-      active = mode
-      true
-    }
+ * Logger which takes target logging system `ActorRef` to communicate with
+ *
+ * @param client ActorRef of the target logging platform
+ * @param config Configuration to enable / disable logging
+ *
+ */
+class Graylog2Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.AppLogger{
+  private[this] var active:Boolean = true
+  override def enableDisable(mode:Boolean):Boolean = {
+    active = mode
+    true
+  }
 
-    /**
-     * Check whether to send any log level information to actor system or not
-     *
-     * {{{app.log.enabled=1}}} enables logging through it
-     */
-    override def isEnabled = active || config.getInt("app.log.enabled") == 1
-    /**
-     * Check whether to send only `TRACE` or `INFO` log information to actor system or not
-     *
-     * {{{app.log.info.enabled=1}}} enables logging through it
-     */
-    override def isInfoEnabled = isEnabled || config.getInt("app.log.info.enabled") == 1
+  /**
+   * Check whether to send any log level information to actor system or not
+   *
+   * {{{app.log.enabled=1}}} enables logging through it
+   */
+  override def isEnabled = active || config.getInt("app.log.enabled") == 1
+  /**
+   * Check whether to send only `TRACE` or `INFO` log information to actor system or not
+   *
+   * {{{app.log.info.enabled=1}}} enables logging through it
+   */
+  override def isInfoEnabled = isEnabled || config.getInt("app.log.info.enabled") == 1
 
-    /**
-     * Check whether to send only `DEBUG` log information to actor system or not
-     *
-     * {{{app.log.debug.enabled=1}}} enables logging through it
-     */
-    override def isDebugEnabled = isEnabled || config.getInt("app.log.debug.enabled")  == 1
+  /**
+   * Check whether to send only `DEBUG` log information to actor system or not
+   *
+   * {{{app.log.debug.enabled=1}}} enables logging through it
+   */
+  override def isDebugEnabled = isEnabled || config.getInt("app.log.debug.enabled")  == 1
 
-    /**
-     * Check whether to send only `WARN` log information to actor system or not
-     *
-     * {{{app.log.warning.enabled=1}}} enables logging through it
-     */
+  /**
+   * Check whether to send only `WARN` log information to actor system or not
+   *
+   * {{{app.log.warning.enabled=1}}} enables logging through it
+   */
   override def isWarningEnabled = isEnabled || config.getInt("app.log.warning.enabled") == 1
 
-    /**
-     * Logs a message with the `TRACE` level.
-     *
-     * @param message the message to log
-     */
+  /**
+   * Logs a message with the `TRACE` level.
+   *
+   * @param message the message to log
+   */
   override def trace(message: => String) {
-      if (isInfoEnabled) client ! Trace(message)
-    }
+    if (isInfoEnabled) client ! Trace(message)
+  }
 
   /**
    * Logs a message with the `TRACE` level.
@@ -144,52 +143,41 @@ class Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.Log
     if (isEnabled) client ! LogMessage("", LOGTYPE.ERROR, message, Some(Utils.stackTrace(error)))
   }
 
-   /**
+  /**
    * Enable / disable backend with name {{name}}
    * @param name Name of the backend
    * @param enable True for enable, false for disable
    */
   override def backend(name:String, enable:Boolean):Boolean = {
-     //println(s"Setting - $enable for $name")
-     LogBackends.withName(name) match {
-       case LogBackends.AKKA_ACTORS =>
-         enableDisable(enable)
-       case _ => false
-     }
-   }
+    //println(s"Setting - $enable for $name")
+    LogBackends.withName(name) match {
+      case LogBackends.AKKA_ACTORS =>
+        enableDisable(enable)
+      case _ => false
+    }
+  }
 
-  //def log(message: AppLog): Unit = if (isEnabled) client ! message
+  def log(message: AppLog): Unit = if (isEnabled) client ! message
 }
 
-/**
- * API for logging operations through the wrapper around messages to be sent to remote logging actor(s).
- *
- * For example, 
- * {{{
- * Logger.info("Test message!")
- * }}}
- *
- * or
- *
- * {{{import com.acelrtech.log.backends.Logger._}}}
- * {{{
- * debug("Test message!")
- * }}}
- *
- */
-object Logger {
+object Graylog2Logger {
   /**
    * Load the configuration object based on `com.typesafe.config.Config`
    *
    */
-  def apply(actorRef:ActorSelection, config:Config):Logger = new Logger(actorRef,config)
+  def apply(actorRef:ActorSelection, config:Config):com.acelrtech.log.Logger = {
+    //val appGraylog2IP = config.getString("app.graylog2.host")
+    //val appGraylog2Post = config.getInt("app.graylog2.port")
+    //println(s"IP:$appGraylog2IP and port:$appGraylog2Post")
+    new Graylog2Logger(actorRef,config)
+  }
 
   /**
-  * Create an underlying Logger client through which log events will be delegated to target logging system
-  *
-  */
-  def apply(actorRef:ActorSelection):Logger = {
+   * Create an underlying Logger client through which log events will be delegated to target logging system
+   *
+   */
+  def apply(actorRef:ActorSelection):com.acelrtech.log.Logger = {
     val config:Config = ConfigFactory.load()
-      new Logger(actorRef,config)
+    new Graylog2Logger(actorRef,config)
   }
 }

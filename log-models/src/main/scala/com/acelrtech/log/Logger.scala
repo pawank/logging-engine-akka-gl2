@@ -122,13 +122,12 @@ trait Logger {
 
 /**
  * Logger having application specific details
- * @tparam T AppLog or its subtype
  */
-trait AppLogger[T <: AppLog] extends Logger {
+trait AppLogger extends Logger {
   /**
    * Logs a message with the `ERROR` level.
    *
    * @param message the message to log
    */
-  def log(message:T):Unit
+  def log(message:AppLog):Unit
 }

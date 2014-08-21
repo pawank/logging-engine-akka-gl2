@@ -1,11 +1,13 @@
 package com.acelrtech.log
 
-import akka.actor._
+import akka.actor.{Props, ActorSystem, Actor, ActorSelection}
 import akka.event.Logging
-import com.acelrtech.log.backends.gl2.Graylog2LoggerActor
+import com.acelrtech.log.backends.gl2.{GELF}
+import com.acelrtech.log.models.app.LogCategory
 
 
 import com.typesafe.config._
+import play.api.libs.json.Json
 
 /**
 * Logging engine main application creating an actor `LoggingActor` for processing all incoming log events.
@@ -15,10 +17,10 @@ object LoggingEngine extends App {
   case object Welcome
 
   val system = ActorSystem("AcelrTechLabsLoggingSystem")
-  //lazy val loggingActor = system.actorOf(Props[LoggingActor], name = "LoggingActor")
-  lazy val loggingActor = system.actorOf(Props[Graylog2LoggerActor], name = "LoggingActor")
+  lazy val loggingActor = system.actorOf(Props[LoggingActor], name = "LoggingActor")
+  //lazy val loggingActor = system.actorOf(Props[Graylog2LoggerActor], name = "LoggingActor")
   //val gl2system = ActorSystem("AcelrTechLabsGraylog2LoggingSystem")
-  //lazy val graylog2Actor = gl2system.actorOf(Props[Graylog2LoggerActor], name = "Graylog2LoggingActor")
+  //lazy val graylog2Actor = system.actorOf(Props[Graylog2LoggerActor])
   /**
   * Show a welcome message
   */
@@ -29,27 +31,115 @@ object LoggingEngine extends App {
 
 
 class LoggingActor extends Actor {
+  private[this] var isEnabled = true
   /**
   * Import internal messages
   */
+  import LoggingEngine.Welcome
+  val log = Logging(context.system, this)
+  def receive = {
+    case Welcome => log.info("\nLoggingActor has started...")
+
+    /**
+     *
+     * Messages to activate / deactivate graylog2 logging
+     */
+    case com.acelrtech.log.models.Enable => isEnabled = true
+    case com.acelrtech.log.models.Disable => isEnabled = false
+    case com.acelrtech.log.models.Trace(data) => if (isEnabled) log.info(data)
+    case com.acelrtech.log.models.Info(data) => if (isEnabled) log.info(data)
+    case com.acelrtech.log.models.Debug(data) => if (isEnabled) log.debug(data)
+    case com.acelrtech.log.models.Warning(data) => if (isEnabled) log.warning(data)
+    case com.acelrtech.log.models.Error(data) => if (isEnabled) log.error(data)
+    case com.acelrtech.log.models.Fatal(data) => if (isEnabled) log.error(data)
+  }
+}
+
+
+
+class Graylog2LoggerActor extends Actor {
+  case class LogGraylog2(data:String, level:Int)
+
+  /**
+   * Import internal messages
+   */
   import LoggingEngine.Welcome
 
   val log = Logging(context.system, this)
 
   /**
-  *
-  * Settings for Graylog2 server 
-  *
-  */
-  val config:Config = ConfigFactory.load()
+   *
+   * Settings for Graylog2 server
+   *
+   */
+  private val config:Config = ConfigFactory.load()
+  private val appGraylog2IP = config.getString("app.graylog2.host")
+  private val appGraylog2Post = config.getInt("app.graylog2.port")
+
+  private val gl2 = new com.acelrtech.log.backends.gl2.Graylog2Server(appGraylog2IP,appGraylog2Post)
 
   def receive = {
-    case Welcome => log.info("\nLoggingActor has started...")
-    case com.acelrtech.log.models.Trace(data) => log.info(data)
-    case com.acelrtech.log.models.Info(data) => log.info(data)
-    case com.acelrtech.log.models.Debug(data) => log.debug(data)
-    case com.acelrtech.log.models.Warning(data) => log.warning(data)
-    case com.acelrtech.log.models.Error(data) => log.error(data)
-    case com.acelrtech.log.models.Fatal(data) => log.error(data)
+    case Welcome => println(s"\nLoggingActor has started...")
+    /**
+     *
+     * Messages to activate / deactivate graylog2 logging
+     */
+    case com.acelrtech.log.models.Enable => gl2.enableDisable(true)
+    case com.acelrtech.log.models.Disable => gl2.enableDisable(false)
+
+    case com.acelrtech.log.models.Trace(data) =>
+      self ! LogGraylog2(data,1)
+    case com.acelrtech.log.models.Info(data) =>
+      self ! LogGraylog2(data,1)
+    case com.acelrtech.log.models.Debug(data) =>
+      self ! LogGraylog2(data,2)
+    case com.acelrtech.log.models.Warning(data) =>
+      self ! LogGraylog2(data,3)
+    case com.acelrtech.log.models.Error(data) =>
+      self ! LogGraylog2(data,4)
+    case com.acelrtech.log.models.Fatal(data) =>
+      self ! LogGraylog2(data,5)
+    case a @ com.acelrtech.log.models.app.LogMessage(m,logtype,msg,detail) => logtype match {
+      case com.acelrtech.log.models.LOGTYPE.TRACE =>
+        val more:String = detail.getOrElse("")
+        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 1))
+      case com.acelrtech.log.models.LOGTYPE.INFO =>
+        val more:String = detail.getOrElse("")
+        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 1))
+      case com.acelrtech.log.models.LOGTYPE.DEBUG =>
+        val more:String = detail.getOrElse("")
+        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 2))
+      case com.acelrtech.log.models.LOGTYPE.WARNING =>
+        val more:String = detail.getOrElse("")
+        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 3))
+      case com.acelrtech.log.models.LOGTYPE.ERROR =>
+        val more:String = detail.getOrElse("")
+        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 4))
+    }
+    case a:com.acelrtech.log.models.app.AppLog =>
+      val level = a.logCategory match {
+        case LogCategory.INFO => 1
+        case LogCategory.TRACE => 1
+        case LogCategory.DEBUG => 2
+        case LogCategory.WARN => 3
+        case LogCategory.ERROR => 4
+      }
+      val id:String = a.id.getOrElse("")
+      val stack:String = a.stackTrace.getOrElse("")
+      val output:String = a.output.getOrElse("")
+      gl2.send(Json.stringify(Json.obj("version" -> 1.0, "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
+        "level" -> level, "_id" -> id, "_entity" -> a.entity, "_module" -> a.module, "_input" -> a.input,
+        "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction)))
+    /**
+     * Send log as GELF message to graylog2 server
+     */
+    case LogGraylog2(data,level) => logInGraylog2(data,level)
+  }
+
+  private def logInGraylog2(data:String, level:Int):Unit = {
+    if (gl2.isEnabled) {
+      gl2 send com.acelrtech.log.backends.gl2.GELF(version = 1.0, host = "", short_message = data, full_message = "", level = level)
+    }
   }
 }
+
