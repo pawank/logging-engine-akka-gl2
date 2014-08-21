@@ -1,28 +1,38 @@
 package com.acelrtech.log
 
+import com.acelrtech.log.models.Log
+import com.acelrtech.log.models.app.AppLog
+
 /**
 * Logger contract
 *
 */
 trait Logger {
+  /**
+   * Enable / disable running logger
+   * @param mode True => enable, false => disable
+   * @return True for success, false for failure
+   */
+    def enableDisable(mode:Boolean):Boolean
+
     /**
      * Enable / disable overall logger for logging
      */
-    val isEnabled:Boolean
+    def isEnabled:Boolean
     /**
      * Enable / disable `INFO` messages
      */
-    val isInfoEnabled:Boolean
+    def isInfoEnabled:Boolean
 
     /**
     * Enable / disable `DEBUG` messages
      */
-    val isDebugEnabled:Boolean
+    def isDebugEnabled:Boolean
 
     /**
      * Enable / disable `WARN` messages
      */
-    val isWarningEnabled:Boolean
+    def isWarningEnabled:Boolean
 
     /**
      * Logs a message with the `TRACE` level.
@@ -100,6 +110,7 @@ trait Logger {
    */
   def error(message: => String, error: => Throwable):Unit
 
+
   /**
    * Enable / disable backend with name {{name}}
    * @param name Name of the backend
@@ -107,5 +118,17 @@ trait Logger {
    * @return True if command successful otherwise false
    */
   def backend(name:String, enable:Boolean):Boolean
+}
 
+/**
+ * Logger having application specific details
+ * @tparam T AppLog or its subtype
+ */
+trait AppLogger[T <: AppLog] extends Logger {
+  /**
+   * Logs a message with the `ERROR` level.
+   *
+   * @param message the message to log
+   */
+  def log(message:T):Unit
 }

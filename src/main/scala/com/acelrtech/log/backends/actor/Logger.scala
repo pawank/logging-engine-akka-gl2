@@ -15,12 +15,18 @@ import com.acelrtech.log.models.app.LogMessage
 *
 */
 class Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.Logger{
+    private[this] var active:Boolean = true
+    override def enableDisable(mode:Boolean):Boolean = {
+      active = mode
+      true
+    }
+
     /**
      * Check whether to send any log level information to actor system or not
      *
      * {{{app.log.enabled=1}}} enables logging through it
      */
-    override val isEnabled = config.getInt("app.log.enabled") == 1
+    override def isEnabled = active || config.getInt("app.log.enabled") == 1
 
 
     /**
@@ -28,21 +34,21 @@ class Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.Log
      *
      * {{{app.log.info.enabled=1}}} enables logging through it
      */
-    override lazy val isInfoEnabled = isEnabled || config.getInt("app.log.info.enabled") == 1
+    override def isInfoEnabled = isEnabled || config.getInt("app.log.info.enabled") == 1
 
     /**
      * Check whether to send only `DEBUG` log information to actor system or not
      *
      * {{{app.log.debug.enabled=1}}} enables logging through it
      */
-    override lazy val isDebugEnabled = isEnabled || config.getInt("app.log.debug.enabled")  == 1
+    override def isDebugEnabled = isEnabled || config.getInt("app.log.debug.enabled")  == 1
 
     /**
      * Check whether to send only `WARN` log information to actor system or not
      *
      * {{{app.log.warning.enabled=1}}} enables logging through it
      */
-  override lazy val isWarningEnabled = isEnabled || config.getInt("app.log.warning.enabled") == 1
+  override def isWarningEnabled = isEnabled || config.getInt("app.log.warning.enabled") == 1
 
     /**
      * Logs a message with the `TRACE` level.
@@ -146,8 +152,12 @@ class Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.Log
    * @param enable True for enable, false for disable
    */
   override def backend(name:String, enable:Boolean):Boolean = {
-     println(s"Setting - $enable for $name")
-     enable
+     //println(s"Setting - $enable for $name")
+     LogBackends.withName(name) match {
+       case LogBackends.AKKA_ACTORS =>
+         enableDisable(enable)
+       case _ => false
+     }
    }
 
 }

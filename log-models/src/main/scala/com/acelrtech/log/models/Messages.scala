@@ -20,5 +20,5 @@ case class Warning(log:String) extends Log
 case class Fatal(log:String) extends Log
 
 
-case object EnableGraylog2
-case object DisableGraylog2
+case object Enable
+case object Disable

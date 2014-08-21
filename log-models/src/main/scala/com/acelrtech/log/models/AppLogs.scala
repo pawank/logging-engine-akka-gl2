@@ -7,13 +7,14 @@ import org.joda.time.DateTime
 
 trait LogRequest{
   def ip: String
-  def host: String
+  def path: String
   def status: String
   def action: String
   def queryString: Option[String]
+  def session:Option[String]
 }
 
-case class PlayLogRequest(ip: String, host: String, status: String, action: String, queryString : Option[String]) extends LogRequest
+case class PlayLogRequest(ip: String, path:String, status: String, action: String, queryString : Option[String], session:Option[String]) extends LogRequest
 
 object LogCategory extends Enumeration{
   type LogCategory = Value
@@ -56,7 +57,7 @@ trait AppLog extends Log {
   def output: Option[String]
   def target: String
   def calledFunction: String
-
+  def host:String
   /**
    * To be used for converting into JSON structure to send it to Graylog2 or other logging server who needs JSON input
    * @return
@@ -68,11 +69,16 @@ trait AppLog extends Log {
 
 case class SimpleLog(id:Option[String] = None, entity: String, logCategory: LogCategory = LogCategory.DEBUG,  module: String,
                      message: String, stackTrace: Option[String] = None, input: String, output: Option[String] = None,
-                     target: String, calledFunction: String, _t: LogType = AppLogType(),
+                     target: String, calledFunction: String, host:String, _t: LogType = AppLogType(),
                      createdBy: Option[Long] = None, createdOn: DateTime = DateTime.now) extends AppLog
 
 
 case class FullLog(id:Option[String] = None, entity: String, logCategory: LogCategory = LogCategory.DEBUG,  module: String,
                    message: String, stackTrace: Option[String] = None, input: String, output: Option[String] = None,
-                   target: String, calledFunction: String, _t: LogType = AppLogType(),
+                   target: String, calledFunction: String, host:String,_t: LogType = AppLogType(),
                    createdBy: Option[Long] = None, createdOn: DateTime = DateTime.now, request: LogRequest) extends AppLog
+
+
+
+case object EnableGraylog2
+case object DisableGraylog2
