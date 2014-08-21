@@ -16,12 +16,13 @@ object LoggingEngine extends App {
 
   val system = ActorSystem("AcelrTechLabsLoggingSystem")
   lazy val loggingActor = system.actorOf(Props[LoggingActor], name = "LoggingActor")
-  lazy val graylog2Actor = system.actorOf(Props[Graylog2LoggerActor], name = "Graylog2LoggingActor")
+  //val gl2system = ActorSystem("AcelrTechLabsGraylog2LoggingSystem")
+  //lazy val graylog2Actor = gl2system.actorOf(Props[Graylog2LoggerActor], name = "Graylog2LoggingActor")
   /**
   * Show a welcome message
   */
   loggingActor ! Welcome
-  graylog2Actor ! Welcome
+  //graylog2Actor ! Welcome
 }
 
 

@@ -215,3 +215,32 @@ class Graylog2LoggerActor extends Actor {
     }
   }
 }
+
+class Graylog2Logging(client:ActorSelection, config:Config, hostname:String, port:Int) extends Graylog2Logger(hostname,port) {
+
+}
+
+object Graylog2Logger {
+  /**
+   * Load the configuration object based on `com.typesafe.config.Config`
+   *
+   */
+  def apply(actorRef:ActorSelection, config:Config):Logger = {
+    val appGraylog2IP = config.getString("app.graylog2.host")
+    val appGraylog2Post = config.getInt("app.graylog2.port")
+    println(s"IP:$appGraylog2IP and port:$appGraylog2Post")
+    new Graylog2Logging(actorRef,config, appGraylog2IP, appGraylog2Post)
+  }
+
+  /**
+   * Create an underlying Logger client through which log events will be delegated to target logging system
+   *
+   */
+  def apply(actorRef:ActorSelection):Logger = {
+    val config:Config = ConfigFactory.load()
+    val appGraylog2IP = config.getString("app.graylog2.host")
+    val appGraylog2Post = config.getInt("app.graylog2.port")
+    println(s"IP:$appGraylog2IP and port:$appGraylog2Post")
+    new Graylog2Logging(actorRef,config, appGraylog2IP, appGraylog2Post)
+  }
+}
