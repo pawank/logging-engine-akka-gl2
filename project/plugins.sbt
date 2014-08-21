@@ -4,3 +4,6 @@ resolvers += Resolver.url(
     Resolver.ivyStylePatterns)
 
 addSbtPlugin("me.lessis" % "bintray-sbt" % "0.1.1")
+
+//Intellij plugin
+addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.6.0")

@@ -1,5 +1,8 @@
 package com.acelrtech.log.backends
 
+import com.acelrtech.log.Logger
+import com.acelrtech.log.models.app.AppLog
+import com.acelrtech.utils.Utils
 import play.api.libs.json.Json
 import play.api.libs.json._
 import akka.actor._
@@ -19,12 +22,57 @@ case class GELF(version:Double, host:String, short_message:String, full_message:
 }
 
 trait Graylog2Spec {
+  def log(message:AppLog):Unit
   def send(gelf:GELFLike):Either[String, Boolean]
 }
 
-
-class Graylog2Client(val hostname:String, val port:Int) extends Graylog2Spec{
+class Graylog2Logger(val hostname:String, val port:Int) extends Logger with Graylog2Spec{
   val address = resolveAddress(hostname)
+
+  def appLogToGELF(applog:AppLog):GELF = {
+    GELF(version = 1.0, host = "localhost", short_message = applog.message, full_message = applog.input, level = 1)
+  }
+
+  override def log(message:AppLog):Unit = {
+    send(appLogToGELF(message))
+  }
+
+  override val isEnabled: Boolean = true
+
+  override def warn(message: => String): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = "", level = 1))
+
+  override def warn(message: => String, error: => Throwable): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = Utils.stackTrace(error), level = 1))
+
+  override def error(message: => String): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = "", level = 1))
+
+
+  override def error(message: => String, error: => Throwable): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = Utils.stackTrace(error), level = 1))
+
+
+  override def backend(name: String, enable: Boolean): Boolean = true
+
+  override def debug(message: => String): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = "", level = 1))
+
+
+  override def debug(message: => String, error: => Throwable): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = Utils.stackTrace(error), level = 1))
+
+
+  override def trace(message: => String): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = "", level = 1))
+
+
+  override def trace(message: => String, error: => Throwable): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = Utils.stackTrace(error), level = 1))
+
+
+  override def info(message: => String): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = "", level = 1))
+
+
+  override def info(message: => String, error: => Throwable): Unit = send(GELF(version = 1.0, host = "localhost", short_message = message, full_message = Utils.stackTrace(error), level = 1))
+
+
+  override val isInfoEnabled: Boolean = true
+  override val isDebugEnabled: Boolean = true
+  override val isWarningEnabled: Boolean = true
+
   def resolveAddress(address: String): Option[InetAddress] = {
     val uncheckedResult = InetAddress.getByName(hostname)
     if (uncheckedResult.isReachable(250)) {

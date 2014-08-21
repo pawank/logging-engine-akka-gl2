@@ -42,7 +42,7 @@ class LoggingActor extends Actor {
   lazy val appGraylog2Post = config.getInt("app.graylog2.port")
   private var logInGraylog2 = false
 
-  private lazy val gl2 = new com.acelrtech.log.backends.Graylog2Client(appGraylog2IP,appGraylog2Post)
+  private lazy val gl2 = new com.acelrtech.log.backends.Graylog2Logger(appGraylog2IP,appGraylog2Post)
 
   def receive = {
     case Welcome => log.info("\nLoggingActor has started...")
@@ -64,7 +64,7 @@ class LoggingActor extends Actor {
     case com.acelrtech.log.models.Fatal(data) => log.error(data)
       if (logInGraylog2) 
         self ! LogGraylog2(data)
-    case a @ com.acelrtech.log.models.AppLog(_,logtype,_,_) => logtype match {
+    case a @ com.acelrtech.log.models.app.LogMessage(_,logtype,_,_) => logtype match {
       case com.acelrtech.log.models.LOGTYPE.TRACE => log.info(a.toString)
         if (logInGraylog2) 
           self ! LogGraylog2(a.toString)
