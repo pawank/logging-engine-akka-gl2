@@ -170,7 +170,7 @@ object Graylog2Logger {
    * Load the configuration object based on `com.typesafe.config.Config`
    *
    */
-  def apply(actorRef:ActorSelection, config:Config):com.acelrtech.log.Logger = {
+  def apply(actorRef:ActorSelection, config:Config):com.acelrtech.log.AppLogger = {
     //val appGraylog2IP = config.getString("app.graylog2.host")
     //val appGraylog2Post = config.getInt("app.graylog2.port")
     //println(s"IP:$appGraylog2IP and port:$appGraylog2Post")
@@ -181,7 +181,7 @@ object Graylog2Logger {
    * Create an underlying Logger client through which log events will be delegated to target logging system
    *
    */
-  def apply(actorRef:ActorSelection):com.acelrtech.log.Logger = {
+  def apply(actorRef:ActorSelection):com.acelrtech.log.AppLogger = {
     val config:Config = ConfigFactory.load()
     new Graylog2Logger(actorRef,config)
   }

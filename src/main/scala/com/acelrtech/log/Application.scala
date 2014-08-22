@@ -133,7 +133,7 @@ class GL2LoggerActor extends Actor {
       val data = Json.stringify(Json.obj("version" -> "1.1", "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
         "level" -> level, "_id" -> id, "_entity" -> a.entity, "_module" -> a.module, "_input" -> a.input,
         "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction))
-      log.info("GELF:$data")
+      log.info(s"GELF:$data")
       gl2.send(data)
 
     case LogGraylog2(data,level) => logInGraylog2(data,level)
