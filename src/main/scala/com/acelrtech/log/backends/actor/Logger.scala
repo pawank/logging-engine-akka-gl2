@@ -5,7 +5,7 @@ import com.acelrtech.log.models._
 import com.acelrtech.utils.Utils
 import com.typesafe.config._
 import com.acelrtech.log.models.app.{AppLog, LogMessage}
-
+import com.acelrtech.log.Logger
 
 /**
 * Logger which takes target logging system `ActorRef` to communicate with
@@ -14,7 +14,7 @@ import com.acelrtech.log.models.app.{AppLog, LogMessage}
 * @param config Configuration to enable / disable logging
 *
 */
-class Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.Logger{
+class AkkaLogger(client:ActorSelection, config:Config) extends com.acelrtech.log.Logger{
     private[this] var active:Boolean = true
     override def enableDisable(mode:Boolean):Boolean = {
       active = mode
@@ -177,12 +177,12 @@ class Logger(client:ActorSelection, config:Config) extends com.acelrtech.log.Log
  * }}}
  *
  */
-object Logger {
+object AkkaLogger {
   /**
    * Load the configuration object based on `com.typesafe.config.Config`
    *
    */
-  def apply(actorRef:ActorSelection, config:Config):Logger = new Logger(actorRef,config)
+  def apply(actorRef:ActorSelection, config:Config):Logger = new AkkaLogger(actorRef,config)
 
   /**
   * Create an underlying Logger client through which log events will be delegated to target logging system
@@ -190,6 +190,6 @@ object Logger {
   */
   def apply(actorRef:ActorSelection):Logger = {
     val config:Config = ConfigFactory.load()
-      new Logger(actorRef,config)
+      new AkkaLogger(actorRef,config)
   }
 }

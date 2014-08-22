@@ -22,7 +22,7 @@ import scala.Error
 trait GELFLike {
   def toJson:JsValue
 }
-case class GELF(version:Double, host:String, short_message:String, full_message:String, level:Int) extends GELFLike {
+case class GELF(version:String = "1.1", host:String, short_message:String, full_message:String, level:Int) extends GELFLike {
   override def toJson = Json.obj("version" -> version, "host" -> host, "short_message" -> short_message, "full_message" -> full_message, "level" -> level)
 }
 
@@ -34,10 +34,10 @@ class Graylog2Server(val hostname:String, val port:Int) extends Graylog2Spec{
   private[this] var active:Boolean = true
   val address = resolveAddress(hostname)
   def appLogToGELF(applog:AppLog):GELF = {
-    GELF(version = 1.0, host = "localhost", short_message = applog.message, full_message = applog.input, level = 1)
+    GELF(host = "localhost", short_message = applog.message, full_message = applog.input, level = 1)
   }
 
-  def enableDisable(mode:Boolean) {
+  def enableDisable(mode:Boolean) = {
     active = mode
   }
 

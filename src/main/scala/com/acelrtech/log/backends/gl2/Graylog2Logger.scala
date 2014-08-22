@@ -1,6 +1,8 @@
 package com.acelrtech.log.backends.gl2
 
 import akka.actor.{Actor,ActorSelection}
+import com.acelrtech.log.Logger
+
 import com.acelrtech.log.models._
 import com.acelrtech.utils.Utils
 import com.typesafe.config._
@@ -92,6 +94,7 @@ class Graylog2Logger(client:ActorSelection, config:Config) extends com.acelrtech
    * @param message the message to log
    */
   override def info(message: => String) {
+    println(s"INFO message to server as $message")
     if (isInfoEnabled) client ! Info(message)
   }
 
@@ -151,13 +154,15 @@ class Graylog2Logger(client:ActorSelection, config:Config) extends com.acelrtech
   override def backend(name:String, enable:Boolean):Boolean = {
     //println(s"Setting - $enable for $name")
     LogBackends.withName(name) match {
-      case LogBackends.AKKA_ACTORS =>
+      case LogBackends.GRAYLOG2 =>
         enableDisable(enable)
       case _ => false
     }
   }
 
-  def log(message: AppLog): Unit = if (isEnabled) client ! message
+  def log(message: AppLog): Unit = {
+    if (isEnabled) client ! message
+  }
 }
 
 object Graylog2Logger {

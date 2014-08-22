@@ -16,16 +16,16 @@ import play.api.libs.json.Json
 object LoggingEngine extends App {
   case object Welcome
 
-  val system = ActorSystem("AcelrTechLabsLoggingSystem")
-  lazy val loggingActor = system.actorOf(Props[LoggingActor], name = "LoggingActor")
-  //lazy val loggingActor = system.actorOf(Props[Graylog2LoggerActor], name = "LoggingActor")
-  //val gl2system = ActorSystem("AcelrTechLabsGraylog2LoggingSystem")
-  //lazy val graylog2Actor = system.actorOf(Props[Graylog2LoggerActor])
+  //val system = ActorSystem("AcelrTechLabsLoggingSystem")
+  //lazy val loggingActor = system.actorOf(Props[LoggingActor], name = "LoggingActor")
+  //lazy val loggingActor = system.actorOf(Props[GL2LoggerActor], name = "LoggingActor")
+  val gl2system = ActorSystem("AcelrTechLabsGraylog2LoggingSystem")
+  lazy val graylog2Actor = gl2system.actorOf(Props[GL2LoggerActor], name = "Graylog2LoggingActor")
   /**
   * Show a welcome message
   */
-  loggingActor ! Welcome
-  //graylog2Actor ! Welcome
+  //loggingActor ! Welcome
+  graylog2Actor ! Welcome
 }
 
 
@@ -57,7 +57,7 @@ class LoggingActor extends Actor {
 
 
 
-class Graylog2LoggerActor extends Actor {
+class GL2LoggerActor extends Actor {
   case class LogGraylog2(data:String, level:Int)
 
   /**
@@ -72,6 +72,7 @@ class Graylog2LoggerActor extends Actor {
    * Settings for Graylog2 server
    *
    */
+
   private val config:Config = ConfigFactory.load()
   private val appGraylog2IP = config.getString("app.graylog2.host")
   private val appGraylog2Post = config.getInt("app.graylog2.port")
@@ -79,11 +80,11 @@ class Graylog2LoggerActor extends Actor {
   private val gl2 = new com.acelrtech.log.backends.gl2.Graylog2Server(appGraylog2IP,appGraylog2Post)
 
   def receive = {
-    case Welcome => println(s"\nLoggingActor has started...")
-    /**
-     *
-     * Messages to activate / deactivate graylog2 logging
-     */
+
+   case Welcome =>
+     log.info("\nLoggingActor has started...")
+     //println(s"\nLoggingActor has started...")
+
     case com.acelrtech.log.models.Enable => gl2.enableDisable(true)
     case com.acelrtech.log.models.Disable => gl2.enableDisable(false)
 
@@ -99,23 +100,25 @@ class Graylog2LoggerActor extends Actor {
       self ! LogGraylog2(data,4)
     case com.acelrtech.log.models.Fatal(data) =>
       self ! LogGraylog2(data,5)
+
     case a @ com.acelrtech.log.models.app.LogMessage(m,logtype,msg,detail) => logtype match {
       case com.acelrtech.log.models.LOGTYPE.TRACE =>
         val more:String = detail.getOrElse("")
-        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 1))
+        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 1))
       case com.acelrtech.log.models.LOGTYPE.INFO =>
         val more:String = detail.getOrElse("")
-        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 1))
+        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 1))
       case com.acelrtech.log.models.LOGTYPE.DEBUG =>
         val more:String = detail.getOrElse("")
-        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 2))
+        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 2))
       case com.acelrtech.log.models.LOGTYPE.WARNING =>
         val more:String = detail.getOrElse("")
-        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 3))
+        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 3))
       case com.acelrtech.log.models.LOGTYPE.ERROR =>
         val more:String = detail.getOrElse("")
-        self ! gl2.send(GELF(version = 1.0, host = "", short_message = msg, full_message = more, level = 4))
+        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 4))
     }
+
     case a:com.acelrtech.log.models.app.AppLog =>
       val level = a.logCategory match {
         case LogCategory.INFO => 1
@@ -127,19 +130,23 @@ class Graylog2LoggerActor extends Actor {
       val id:String = a.id.getOrElse("")
       val stack:String = a.stackTrace.getOrElse("")
       val output:String = a.output.getOrElse("")
-      gl2.send(Json.stringify(Json.obj("version" -> 1.0, "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
+      val data = Json.stringify(Json.obj("version" -> "1.1", "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
         "level" -> level, "_id" -> id, "_entity" -> a.entity, "_module" -> a.module, "_input" -> a.input,
-        "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction)))
-    /**
-     * Send log as GELF message to graylog2 server
-     */
+        "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction))
+      log.info("GELF:$data")
+      gl2.send(data)
+
     case LogGraylog2(data,level) => logInGraylog2(data,level)
+
   }
 
-  private def logInGraylog2(data:String, level:Int):Unit = {
+  private def logInGraylog2(data:String, level:Int) = {
+    log.info(s"DATA - $data for level - $level")
+    log.debug("Graylog2 server enabled?: " + gl2.isEnabled)
     if (gl2.isEnabled) {
-      gl2 send com.acelrtech.log.backends.gl2.GELF(version = 1.0, host = "", short_message = data, full_message = "", level = level)
+      gl2.send(com.acelrtech.log.backends.gl2.GELF(version = "1.1", host = "localhost", short_message = data, full_message = "test", level = level))
     }
   }
+
 }
 
