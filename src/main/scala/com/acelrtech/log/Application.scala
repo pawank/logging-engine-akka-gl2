@@ -2,7 +2,7 @@ package com.acelrtech.log
 
 import akka.actor.{Props, ActorSystem, Actor, ActorSelection}
 import akka.event.Logging
-import com.acelrtech.log.backends.gl2.{GELF}
+import com.acelrtech.log.backends.gl2.{Graylog2Constants, GELF}
 import com.acelrtech.log.models.app.LogCategory
 
 
@@ -101,36 +101,44 @@ class GL2LoggerActor extends Actor {
     case com.acelrtech.log.models.Fatal(data) =>
       self ! LogGraylog2(data,5)
 
-    case a @ com.acelrtech.log.models.app.LogMessage(m,logtype,msg,detail) => logtype match {
+    case a @ com.acelrtech.log.models.app.LogMessage(host,logtype,msg,detail) => logtype match {
       case com.acelrtech.log.models.LOGTYPE.TRACE =>
         val more:String = detail.getOrElse("")
-        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 1))
+        gl2.send(GELF(version = Graylog2Constants.VERSION, host = host, short_message = msg, full_message = more, level = 1))
       case com.acelrtech.log.models.LOGTYPE.INFO =>
         val more:String = detail.getOrElse("")
-        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 1))
+        gl2.send(GELF(version = Graylog2Constants.VERSION, host = host, short_message = msg, full_message = more, level = 1))
       case com.acelrtech.log.models.LOGTYPE.DEBUG =>
         val more:String = detail.getOrElse("")
-        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 2))
+        gl2.send(GELF(version = Graylog2Constants.VERSION, host = host, short_message = msg, full_message = more, level = 0))
       case com.acelrtech.log.models.LOGTYPE.WARNING =>
         val more:String = detail.getOrElse("")
-        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 3))
+        gl2.send(GELF(version = Graylog2Constants.VERSION, host = host, short_message = msg, full_message = more, level = 2))
       case com.acelrtech.log.models.LOGTYPE.ERROR =>
         val more:String = detail.getOrElse("")
-        gl2.send(GELF(version = "1.1", host = "", short_message = msg, full_message = more, level = 4))
+        gl2.send(GELF(version = Graylog2Constants.VERSION, host = host, short_message = msg, full_message = more, level = 3))
+      case com.acelrtech.log.models.LOGTYPE.FATAL =>
+        val more:String = detail.getOrElse("")
+        gl2.send(GELF(version = Graylog2Constants.VERSION, host = host, short_message = msg, full_message = more, level = 4))
+      case com.acelrtech.log.models.LOGTYPE.UNKNOWN =>
+        val more:String = detail.getOrElse("")
+        gl2.send(GELF(version = Graylog2Constants.VERSION, host = host, short_message = msg, full_message = more, level = 5))
     }
 
     case a:com.acelrtech.log.models.app.AppLog =>
       val level = a.logCategory match {
         case LogCategory.INFO => 1
         case LogCategory.TRACE => 1
-        case LogCategory.DEBUG => 2
-        case LogCategory.WARN => 3
-        case LogCategory.ERROR => 4
+        case LogCategory.DEBUG => 0
+        case LogCategory.WARN => 2
+        case LogCategory.ERROR => 3
+        case LogCategory.FATAL => 4
+        case LogCategory.UNKNOWN => 5
       }
       val id:String = a.id.getOrElse("")
       val stack:String = a.stackTrace.getOrElse("")
       val output:String = a.output.getOrElse("")
-      val data = Json.stringify(Json.obj("version" -> "1.1", "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
+      val data = Json.stringify(Json.obj("version" -> Graylog2Constants.VERSION, "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
         "level" -> level, "_id" -> id, "_entity" -> a.entity, "_module" -> a.module, "_input" -> a.input,
         "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction))
       log.info(s"GELF:$data")
@@ -144,7 +152,7 @@ class GL2LoggerActor extends Actor {
     log.info(s"DATA - $data for level - $level")
     log.debug("Graylog2 server enabled?: " + gl2.isEnabled)
     if (gl2.isEnabled) {
-      gl2.send(com.acelrtech.log.backends.gl2.GELF(version = "1.1", host = "localhost", short_message = data, full_message = "test", level = level))
+      gl2.send(com.acelrtech.log.backends.gl2.GELF(version = Graylog2Constants.VERSION, host = "localhost", short_message = data, full_message = "test", level = level))
     }
   }
 

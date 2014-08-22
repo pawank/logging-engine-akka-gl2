@@ -18,7 +18,7 @@ case class PlayLogRequest(ip: String, path:String, status: String, action: Strin
 
 object LogCategory extends Enumeration{
   type LogCategory = Value
-  val DEBUG,INFO,TRACE,WARN,ERROR = Value
+  val DEBUG,INFO,TRACE,WARN,ERROR,FATAL,UNKNOWN = Value
 }
 
 trait LogType{
@@ -33,14 +33,14 @@ case class AppLogWithRequestType(value: String = "models.logging.AppLogWithReque
  *
  * Application specific log message to be sent by logging client
  *
- * @param module Name of the application module / component
+ * @param host Hostname
  * @param logType Any one out of {{{com.acelrtech.log.models.LOGTYPE.LOGTYPE}}}
  * @param message Title of the log entry
  * @param detail Optional value with more information about the log entrye
  *
  */
-case class LogMessage(module:String, logType:LOGTYPE, message:String, detail:Option[String]) extends Log {
-  override def toString = s"""$logType $module $message $detail.getOrElse("")"""
+case class LogMessage(host:String, logType:LOGTYPE, message:String, detail:Option[String]) extends Log {
+  override def toString = s"""$logType $host $message $detail.getOrElse("")"""
 }
 
 /**

@@ -8,7 +8,7 @@ import com.acelrtech.log.models.LOGTYPE.LOGTYPE
 */
 object LOGTYPE extends Enumeration{
   type LOGTYPE = Value
-  val TRACE, INFO, DEBUG, WARNING, ERROR, FATAL = Value
+  val TRACE, INFO, DEBUG, WARNING, ERROR, FATAL, UNKNOWN = Value
 }
 
 trait Log

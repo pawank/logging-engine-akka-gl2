@@ -19,10 +19,14 @@ import java.net._
 
 import scala.Error
 
+object Graylog2Constants {
+  val VERSION = "1.1"
+}
+
 trait GELFLike {
   def toJson:JsValue
 }
-case class GELF(version:String = "1.1", host:String, short_message:String, full_message:String, level:Int) extends GELFLike {
+case class GELF(version:String = Graylog2Constants.VERSION, host:String, short_message:String, full_message:String, level:Int) extends GELFLike {
   override def toJson = Json.obj("version" -> version, "host" -> host, "short_message" -> short_message, "full_message" -> full_message, "level" -> level)
 }
 
