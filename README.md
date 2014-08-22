@@ -17,3 +17,6 @@ Steps to run:
 clone logging-engine-akka-gl2-dependencies and follow respective README files  
 Each program has *run.sh* which is a shell script wrapper for running the respective application.
 
+
+## How to run using activator?
+> ./activator run target/scala-2.11/logging-engine_2.11-1.0.jar -Ddebug=1 -Dlogsystem=1
