@@ -18,7 +18,7 @@ case class Debug(log:String) extends Log
 case class Error(log:String) extends Log
 case class Warning(log:String) extends Log
 case class Fatal(log:String) extends Log
-
+case class Unknown(log:String) extends Log
 
 case object Enable
 case object Disable

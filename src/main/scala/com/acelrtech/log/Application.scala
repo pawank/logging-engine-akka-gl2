@@ -9,23 +9,41 @@ import com.acelrtech.log.models.app.LogCategory
 import com.typesafe.config._
 import play.api.libs.json.Json
 
+
 /**
 * Logging engine main application creating an actor `LoggingActor` for processing all incoming log events.
 *
 */
 object LoggingEngine extends App {
+  private val AKKA_SYSTEM = "AcelrTechLabsLoggingSystem"
+  private val GL2_SYSTEM = "AcelrTechLabsGraylog2LoggingSystem"
   case object Welcome
 
-  //val system = ActorSystem("AcelrTechLabsLoggingSystem")
-  //lazy val loggingActor = system.actorOf(Props[LoggingActor], name = "LoggingActor")
-  //lazy val loggingActor = system.actorOf(Props[GL2LoggerActor], name = "LoggingActor")
-  val gl2system = ActorSystem("AcelrTechLabsGraylog2LoggingSystem")
-  lazy val graylog2Actor = gl2system.actorOf(Props[GL2LoggerActor], name = "Graylog2LoggingActor")
-  /**
-  * Show a welcome message
-  */
-  //loggingActor ! Welcome
-  graylog2Actor ! Welcome
+
+  val debugModeOn = System.getProperty("debug") != null
+  val msg = if (debugModeOn) "Running LoggingEngine in DEBUG mode..." else "Running LoggingEngine WITHOUT DEBUG mode..."
+  println(msg)
+
+  //logsystem != null for Graylog2 else default Akka logging
+  val logSystem = System.getProperty("logsystem") != null
+  val sysmsg = if (!logSystem) "Running Akka logging system..." else "Running Graylog2 logging system on top of Akka..."
+  println(sysmsg)
+  if (logSystem) {
+    val gl2system = ActorSystem(GL2_SYSTEM)
+    lazy val graylog2Actor = gl2system.actorOf(Props[GL2LoggerActor], name = "LoggingActor")
+    /**
+     * Show a welcome message
+     */
+    graylog2Actor ! Welcome
+  } else {
+    val system = ActorSystem(AKKA_SYSTEM)
+    lazy val loggingActor = system.actorOf(Props[LoggingActor], name = "LoggingActor")
+    /**
+     * Show a welcome message
+     */
+    loggingActor ! Welcome
+  }
+
 }
 
 
@@ -79,6 +97,13 @@ class GL2LoggerActor extends Actor {
 
   private val gl2 = new com.acelrtech.log.backends.gl2.Graylog2Server(appGraylog2IP,appGraylog2Post)
 
+
+  def as[T: scala.reflect.runtime.universe.TypeTag](term: Any): Option[T] =
+    if (reflect.runtime.currentMirror.reflect(term).symbol.toType <:< scala.reflect.runtime.universe.typeOf[T])
+      Some(term.asInstanceOf[T])
+    else
+      None
+
   def receive = {
 
    case Welcome =>
@@ -93,13 +118,15 @@ class GL2LoggerActor extends Actor {
     case com.acelrtech.log.models.Info(data) =>
       self ! LogGraylog2(data,1)
     case com.acelrtech.log.models.Debug(data) =>
-      self ! LogGraylog2(data,2)
+      self ! LogGraylog2(data,0)
     case com.acelrtech.log.models.Warning(data) =>
-      self ! LogGraylog2(data,3)
+      self ! LogGraylog2(data,2)
     case com.acelrtech.log.models.Error(data) =>
-      self ! LogGraylog2(data,4)
+      self ! LogGraylog2(data,3)
     case com.acelrtech.log.models.Fatal(data) =>
-      self ! LogGraylog2(data,5)
+      self ! LogGraylog2(data,4)
+   case com.acelrtech.log.models.Unknown(data) =>
+     self ! LogGraylog2(data,5)
 
     case a @ com.acelrtech.log.models.app.LogMessage(host,logtype,msg,detail) => logtype match {
       case com.acelrtech.log.models.LOGTYPE.TRACE =>
@@ -138,9 +165,20 @@ class GL2LoggerActor extends Actor {
       val id:String = a.id.getOrElse("")
       val stack:String = a.stackTrace.getOrElse("")
       val output:String = a.output.getOrElse("")
-      val data = Json.stringify(Json.obj("version" -> Graylog2Constants.VERSION, "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
-        "level" -> level, "_id" -> id, "_entity" -> a.entity, "_module" -> a.module, "_input" -> a.input,
-        "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction))
+      val createdBy:String = a.createdBy.getOrElse(-1).toString
+      val data = as[com.acelrtech.log.models.app.FullLog](a) match {
+        case None =>
+          Json.stringify(Json.obj("version" -> Graylog2Constants.VERSION, "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
+      "level" -> level, "_id" -> id, "_entity" -> a.entity, "_module" -> a.module, "_input" -> a.input,
+      "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction, "_t" -> a._t.value, "_createdon" -> a.createdOn.getMillis, "_createdby" -> createdBy))
+        case Some(full) =>
+          val session = full.request.session.getOrElse("")
+          Json.stringify(Json.obj("version" -> Graylog2Constants.VERSION, "host" -> a.host, "short_message" -> a.message, "full_message" -> stack,
+      "level" -> level, "_id" -> id, "_entity" -> a.entity, "_module" -> a.module, "_input" -> a.input,
+      "_output" -> output, "_target" -> a.target, "_function" -> a.calledFunction, "_t" -> a._t.value, "_createdon" -> a.createdOn.getMillis, "_createdby" -> createdBy,
+        "_request_ip" -> full.request.ip, "_request_path" -> full.request.path, "_request_status" -> full.request.status,
+        "_request_action" -> full.request.action, "_request_q" -> full.request.queryString, "_session" -> session))
+      }
       log.info(s"GELF:$data")
       gl2.send(data)
 

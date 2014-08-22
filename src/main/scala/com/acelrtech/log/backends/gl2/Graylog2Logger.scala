@@ -147,6 +147,25 @@ class Graylog2Logger(client:ActorSelection, config:Config) extends com.acelrtech
   }
 
   /**
+   * Logs a message with the `UNKNOWN` level.
+   *
+   * @param message the message to log
+   */
+  override def unknown(message: => String) = {
+    if (isEnabled) client ! Unknown(message)
+  }
+
+  /**
+   * Logs a message with the `UNKNOWN` level.
+   *
+   * @param message the message to log
+   * @param error the associated exception
+   */
+  override def unknown(message: => String, error: => Throwable)  {
+    if (isEnabled) client ! LogMessage("", LOGTYPE.UNKNOWN, message, Some(Utils.stackTrace(error)))
+  }
+
+  /**
    * Enable / disable backend with name {{name}}
    * @param name Name of the backend
    * @param enable True for enable, false for disable

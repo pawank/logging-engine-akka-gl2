@@ -1,7 +1,8 @@
 package com.acelrtech.log
 
-import com.acelrtech.log.models.Log
-import com.acelrtech.log.models.app.AppLog
+import com.acelrtech.log.models.{LOGTYPE, Unknown, Log}
+import com.acelrtech.log.models.app.{LogMessage, AppLog}
+import com.acelrtech.utils.Utils
 
 /**
 * Logger contract
@@ -110,6 +111,20 @@ trait Logger {
    */
   def error(message: => String, error: => Throwable):Unit
 
+  /**
+   * Logs a message with the `UNKNOWN` level.
+   *
+   * @param message the message to log
+   */
+  def unknown(message: => String):Unit
+
+  /**
+   * Logs a message with the `UNKNOWN` level.
+   *
+   * @param message the message to log
+   * @param error the associated exception
+   */
+  def unknown(message: => String, error: => Throwable):Unit
 
   /**
    * Enable / disable backend with name {{name}}
