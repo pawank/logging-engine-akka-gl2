@@ -30,6 +30,6 @@ lazy val logModels = (project in file("log-models")).settings({
   libraryDependencies ++= loglibraryDependencies
 })
 
-//lazy val root = (project in file(".")).settings(libraryDependencies ++= loglibraryDependencies).dependsOn(logModels).aggregate(logModels)
+//lazy val root = (project in file(".")).settings(libraryDependencies ++= loglibraryDependencies).aggregate(logModels).dependsOn(logModels)
 lazy val root = (project in file(".")).settings(libraryDependencies ++= loglibraryDependencies).aggregate(logModels)
 

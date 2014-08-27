@@ -19,6 +19,10 @@ object LoggingEngine extends App {
   private val GL2_SYSTEM = "AcelrTechLabsGraylog2LoggingSystem"
   case object Welcome
 
+  println(s"\n******************************************\n")
+  //println("Usage: <program> -Ddebug=1 -Dlogsystem=1 -Dmodules=A,B,C")
+  println("Usage: <program> -Ddebug=1 -Dlogsystem=1")
+  println(s"\n******************************************\n")
 
   val debugModeOn = System.getProperty("debug") != null
   val msg = if (debugModeOn) "Running LoggingEngine in DEBUG mode..." else "Running LoggingEngine WITHOUT DEBUG mode..."
@@ -28,6 +32,11 @@ object LoggingEngine extends App {
   val logSystem = System.getProperty("logsystem") != null
   val sysmsg = if (!logSystem) "Running Akka logging system..." else "Running Graylog2 logging system on top of Akka..."
   println(sysmsg)
+
+  //val tmpmodules = System.getProperty("modules")
+  //val modules = if (tmpmodules != null) tmpmodules.split(",").toSeq else Seq("main")
+  //println("Found modules - ${tmpmodules}\n")
+
   if (logSystem) {
     val gl2system = ActorSystem(GL2_SYSTEM)
     lazy val graylog2Actor = gl2system.actorOf(Props[GL2LoggerActor], name = "LoggingActor")

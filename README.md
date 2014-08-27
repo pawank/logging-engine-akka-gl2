@@ -1,3 +1,8 @@
+## JOB at AcelrTech Labs for Scala programmers
+We are looking for talented scala programmers who want to change how the enterprise analytics on top of big data works.
+Interested candidate can send the updated resume to care@acelrtech.com for the positions in our R & D office, Bangalore, India.
+
+
 logging-engine-akka-gl2
 =======================
 
