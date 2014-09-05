@@ -11,7 +11,7 @@ Logging engine using Akka and Graylog2 to save incoming logs (as messages) into 
 Steps to run:
 
 1.    cd logging-engine-akka-gl2
-2.    ./activator
+2.    ./activator  (For GrayLog2 logging server: ./activator -Ddebug=1 -Dlogsystem=1)
 3.    project logModels
 4.    package
 5.    cp log-models/target/scala-2.10/logmodels_2.10-0.1-SNAPSHOT.jar lib
